@@ -71,6 +71,7 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="👁️ Qo'shimcha kuzatilayotgan", callback_data="monitored_menu")],
         [InlineKeyboardButton(text="🔑 Kalit so'zlar", callback_data="keywords_menu")],
         [InlineKeyboardButton(text="📦 So'nggi zakazlar", callback_data="recent_orders")],
+        [InlineKeyboardButton(text="👤 Akkauntlar", callback_data="accounts_menu")],
         [InlineKeyboardButton(text="🤖 AI Sozlamalari", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👥 Adminlar", callback_data="admins_menu")],
         [InlineKeyboardButton(text="📊 Statistika", callback_data="stats")],
@@ -713,6 +714,95 @@ async def show_server_info(callback: CallbackQuery):
         )
         
     except Exception as e:
+        await callback.answer(f"❌ Xato: {str(e)}", show_alert=True)
+
+
+# ============== ACCOUNTS HANDLERS ==============
+
+@router.callback_query(F.data == "accounts_menu")
+async def show_accounts(callback: CallbackQuery):
+    """Telegram akkauntlar holati"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Ruxsat yo'q!", show_alert=True)
+        return
+    
+    try:
+        import os
+        import glob
+        from datetime import datetime
+        
+        text = "👤 **Telegram Akkauntlar**\n\n"
+        
+        # Session fayllarini topish
+        session_files = glob.glob("*.session")
+        
+        if not session_files:
+            text += "❌ Hech qanday session topilmadi"
+        else:
+            for session_file in session_files:
+                session_name = session_file.replace(".session", "")
+                
+                # Fayl hajmi
+                file_size = os.path.getsize(session_file) / 1024  # KB
+                
+                # Oxirgi o'zgarish vaqti
+                mtime = os.path.getmtime(session_file)
+                last_modified = datetime.fromtimestamp(mtime)
+                time_diff = datetime.now() - last_modified
+                
+                # Holat (oxirgi 5 daqiqada o'zgargan bo'lsa - faol)
+                if time_diff.total_seconds() < 300:  # 5 daqiqa
+                    status = "🟢 Faol"
+                elif time_diff.total_seconds() < 3600:  # 1 soat
+                    status = "🟡 Kutish"
+                else:
+                    status = "🔴 Faol emas"
+                
+                # Oxirgi faollik
+                if time_diff.total_seconds() < 60:
+                    last_active = f"{int(time_diff.total_seconds())} soniya oldin"
+                elif time_diff.total_seconds() < 3600:
+                    last_active = f"{int(time_diff.total_seconds() / 60)} daqiqa oldin"
+                elif time_diff.total_seconds() < 86400:
+                    last_active = f"{int(time_diff.total_seconds() / 3600)} soat oldin"
+                else:
+                    last_active = f"{int(time_diff.total_seconds() / 86400)} kun oldin"
+                
+                text += f"**{session_name}**\n"
+                text += f"├ Holat: {status}\n"
+                text += f"├ Hajm: {file_size:.1f} KB\n"
+                text += f"└ Oxirgi faollik: {last_active}\n\n"
+        
+        # Process'larni tekshirish
+        import psutil
+        bot_running = False
+        userbot_running = False
+        
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                cmdline = proc.info.get('cmdline', [])
+                if cmdline:
+                    cmdline_str = ' '.join(cmdline)
+                    if 'bot.py' in cmdline_str:
+                        bot_running = True
+                    if 'userbot.py' in cmdline_str:
+                        userbot_running = True
+            except:
+                pass
+        
+        text += "**Process'lar:**\n"
+        text += f"├ Admin Bot: {'🟢 Ishlayapti' if bot_running else '🔴 To\'xtatilgan'}\n"
+        text += f"└ Userbot: {'🟢 Ishlayapti' if userbot_running else '🔴 To\'xtatilgan'}"
+        
+        await safe_edit_text(
+            callback.message,
+            text,
+            reply_markup=back_keyboard(),
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Akkauntlarni ko'rsatishda xato: {e}")
         await callback.answer(f"❌ Xato: {str(e)}", show_alert=True)
 
 
