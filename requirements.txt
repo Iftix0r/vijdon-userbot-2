@@ -3,3 +3,4 @@ openai>=1.12.0
 python-dotenv>=1.0.0
 aiohttp>=3.9.0
 aiogram>=3.4.0
+psutil>=6.0.0

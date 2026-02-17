@@ -74,6 +74,7 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🤖 AI Sozlamalari", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👥 Adminlar", callback_data="admins_menu")],
         [InlineKeyboardButton(text="📊 Statistika", callback_data="stats")],
+        [InlineKeyboardButton(text="🖥 Server", callback_data="server_info")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -616,6 +617,92 @@ async def show_stats(callback: CallbackQuery):
         reply_markup=back_keyboard(),
         parse_mode="Markdown"
     )
+
+
+# ============== SERVER INFO HANDLERS ==============
+
+@router.callback_query(F.data == "server_info")
+async def show_server_info(callback: CallbackQuery):
+    """Server ma'lumotlari"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Ruxsat yo'q!", show_alert=True)
+        return
+    
+    try:
+        import psutil
+        import platform
+        from datetime import datetime, timedelta
+        import os
+        
+        # CPU
+        cpu_percent = psutil.cpu_percent(interval=1)
+        cpu_count = psutil.cpu_count()
+        
+        # RAM
+        ram = psutil.virtual_memory()
+        ram_total = ram.total / (1024 ** 3)  # GB
+        ram_used = ram.used / (1024 ** 3)
+        ram_percent = ram.percent
+        
+        # Disk
+        disk = psutil.disk_usage('/')
+        disk_total = disk.total / (1024 ** 3)  # GB
+        disk_used = disk.used / (1024 ** 3)
+        disk_percent = disk.percent
+        
+        # Uptime
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
+        uptime_str = str(uptime).split('.')[0]  # Sekundlarni olib tashlash
+        
+        # Bot uptime (process)
+        process = psutil.Process(os.getpid())
+        bot_start = datetime.fromtimestamp(process.create_time())
+        bot_uptime = datetime.now() - bot_start
+        bot_uptime_str = str(bot_uptime).split('.')[0]
+        
+        # Network
+        net_io = psutil.net_io_counters()
+        bytes_sent = net_io.bytes_sent / (1024 ** 2)  # MB
+        bytes_recv = net_io.bytes_recv / (1024 ** 2)
+        
+        # Database hajmi
+        db_size = os.path.getsize('data.db') / (1024 ** 2)  # MB
+        
+        text = (
+            "🖥 **Server Ma'lumotlari**\n\n"
+            f"**💻 Sistema:**\n"
+            f"├ OS: {platform.system()} {platform.release()}\n"
+            f"├ Python: {platform.python_version()}\n"
+            f"└ Uptime: {uptime_str}\n\n"
+            f"**⚡ CPU:**\n"
+            f"├ Yadrolar: {cpu_count}\n"
+            f"└ Yuklanish: {cpu_percent}%\n\n"
+            f"**💾 RAM:**\n"
+            f"├ Jami: {ram_total:.1f} GB\n"
+            f"├ Ishlatilgan: {ram_used:.1f} GB\n"
+            f"└ Yuklanish: {ram_percent}%\n\n"
+            f"**💿 Disk:**\n"
+            f"├ Jami: {disk_total:.1f} GB\n"
+            f"├ Ishlatilgan: {disk_used:.1f} GB\n"
+            f"└ Yuklanish: {disk_percent}%\n\n"
+            f"**🌐 Network:**\n"
+            f"├ Yuborilgan: {bytes_sent:.1f} MB\n"
+            f"└ Qabul qilingan: {bytes_recv:.1f} MB\n\n"
+            f"**🤖 Bot:**\n"
+            f"├ Ishlash vaqti: {bot_uptime_str}\n"
+            f"└ Database: {db_size:.2f} MB"
+        )
+        
+        await safe_edit_text(
+            callback.message,
+            text,
+            reply_markup=back_keyboard(),
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        await callback.answer(f"❌ Xato: {str(e)}", show_alert=True)
 
 
 # ============== RECENT ORDERS HANDLERS ==============
