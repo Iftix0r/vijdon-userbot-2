@@ -730,6 +730,7 @@ async def show_accounts(callback: CallbackQuery):
         import os
         import glob
         from datetime import datetime
+        import sqlite3
         
         text = "👤 **Telegram Akkauntlar**\n\n"
         
@@ -768,7 +769,23 @@ async def show_accounts(callback: CallbackQuery):
                 else:
                     last_active = f"{int(time_diff.total_seconds() / 86400)} kun oldin"
                 
+                # Session'dan telefon raqamni olish
+                phone_number = "Noma'lum"
+                try:
+                    conn = sqlite3.connect(session_file)
+                    cursor = conn.cursor()
+                    # Telethon session'da sessions jadvalidagi dc_id va auth_key bor
+                    # Lekin telefon raqam to'g'ridan-to'g'ri saqlanmaydi
+                    # Config fayldan olish
+                    from config import Config
+                    if session_name == Config.SESSION_NAME:
+                        phone_number = Config.PHONE_NUMBER
+                    conn.close()
+                except:
+                    pass
+                
                 text += f"**{session_name}**\n"
+                text += f"├ 📞 Telefon: {phone_number}\n"
                 text += f"├ Holat: {status}\n"
                 text += f"├ Hajm: {file_size:.1f} KB\n"
                 text += f"└ Oxirgi faollik: {last_active}\n\n"
