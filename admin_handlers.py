@@ -140,16 +140,27 @@ async def cmd_start(message: Message):
             is_super=True
         )
     
-    if not is_admin(user_id):
-        await message.answer("⛔ Sizda admin huquqi yo'q!")
-        return
-    
-    await message.answer(
-        "🚕 **Taxi Bot Admin Panel**\n\n"
-        "Quyidagi menyudan kerakli bo'limni tanlang:",
-        reply_markup=main_menu_keyboard(),
-        parse_mode="Markdown"
-    )
+    # Admin uchun admin panel
+    if is_admin(user_id):
+        await message.answer(
+            "🚕 **Taxi Bot Admin Panel**\n\n"
+            "Quyidagi menyudan kerakli bo'limni tanlang:",
+            reply_markup=main_menu_keyboard(),
+            parse_mode="Markdown"
+        )
+    else:
+        # Oddiy foydalanuvchi uchun zakaz berish
+        await message.answer(
+            "🚕 **Vijdon Taxi**\n\n"
+            "Zakaz berish uchun quyidagi formatda yuboring:\n\n"
+            "📍 Qayerdan: [joy nomi]\n"
+            "📍 Qayerga: [joy nomi]\n"
+            "👥 Yo'lovchilar soni: [son]\n"
+            "📞 Telefon: [raqam]\n"
+            "💬 Qo'shimcha: [izoh]\n\n"
+            "Yoki oddiy matn ko'rinishida yuboring, bot avtomatik aniqlaydi.",
+            parse_mode="Markdown"
+        )
 
 
 @router.callback_query(F.data == "main_menu")
@@ -1252,3 +1263,150 @@ async def delete_monitored(callback: CallbackQuery):
         await monitored_menu(callback)
     except Exception as e:
         await callback.answer("❌ Xatolik", show_alert=True)
+
+
+# ============== USER ORDER HANDLERS ==============
+
+@router.message(F.text)
+async def handle_user_order(message: Message):
+    """Oddiy foydalanuvchilardan zakaz qabul qilish"""
+    user_id = message.from_user.id
+    
+    # Adminlar uchun bu handler ishlamaydi (ular callback'lardan foydalanadi)
+    if is_admin(user_id):
+        return
+    
+    # Bloklangan foydalanuvchi
+    if db.is_blocked(user_id):
+        await message.answer("🚫 Siz bloklangansiz. Zakaz bera olmaysiz.")
+        return
+    
+    # Kunlik limit tekshirish
+    if not db.check_user_daily_limit(user_id):
+        order_count = db.get_user_order_count(user_id)
+        await message.answer(
+            f"⚠️ Kunlik limit tugadi!\n\n"
+            f"Siz bugun {order_count} ta zakaz yubordingiz.\n"
+            f"Maksimal: {db.MAX_ORDERS_PER_DAY} ta zakaz/kun\n\n"
+            f"Ertaga qayta urinib ko'ring."
+        )
+        return
+    
+    text = message.text
+    
+    # AI bilan tekshirish
+    from ai_classifier import classifier
+    is_order, order_data = await classifier.is_passenger_order(text)
+    
+    if not is_order:
+        await message.answer(
+            "❌ Zakaz sifatida aniqlanmadi.\n\n"
+            "Iltimos, to'liq ma'lumot bering:\n"
+            "📍 Qayerdan\n"
+            "📍 Qayerga\n"
+            "👥 Yo'lovchilar soni\n"
+            "📞 Telefon raqam"
+        )
+        return
+    
+    # Telefon raqamni tekshirish
+    if not order_data or not order_data.get("phone"):
+        from utils import extract_phone_from_text
+        phone = extract_phone_from_text(text)
+        if phone:
+            if not order_data:
+                order_data = {}
+            order_data["phone"] = phone
+        else:
+            await message.answer(
+                "❌ Telefon raqam topilmadi.\n\n"
+                "Iltimos, telefon raqamingizni kiriting."
+            )
+            return
+    
+    # Target guruhlarga yuborish
+    target_groups = db.get_target_groups()
+    if not target_groups:
+        await message.answer("❌ Xatolik: Target guruhlar sozlanmagan.")
+        return
+    
+    try:
+        from aiogram import Bot
+        from aiogram.enums import ParseMode
+        from utils import format_order_message
+        
+        bot = message.bot
+        sender_name = message.from_user.full_name
+        sender_id = message.from_user.id
+        
+        # Formatlash
+        formatted = format_order_message(
+            order_data,
+            original_message=text,
+            message_link=None,
+            sender_name=sender_name,
+            sender_id=sender_id
+        )
+        
+        # Tugmalar
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        
+        buttons = []
+        
+        # Profil tugmasi
+        if sender_id:
+            user_url = f"tg://user?id={sender_id}"
+            button_name = sender_name
+            if len(button_name) > 25:
+                button_name = button_name[:22] + "..."
+            buttons.append([InlineKeyboardButton(text=f"👤 {button_name}", url=user_url)])
+        
+        # Telefon tugmasi
+        if order_data and order_data.get("phone"):
+            phone = order_data['phone']
+            clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
+            phone_for_url = clean_phone.replace("+", "")
+            phone_url = f"https://onmap.uz/tel/{phone_for_url}"
+            buttons.append([InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url)])
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
+        
+        # Yuborish
+        success_count = 0
+        for target_group in target_groups:
+            try:
+                await bot.send_message(
+                    target_group,
+                    formatted,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                    reply_markup=keyboard
+                )
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Target guruhga yuborishda xato: {e}")
+        
+        if success_count > 0:
+            # Zakazni saqlash
+            db.add_order(
+                user_id=sender_id,
+                user_name=sender_name,
+                phone=order_data.get('phone'),
+                message_text=text,
+                chat_id=message.chat.id,
+                chat_title="Private"
+            )
+            
+            # Kunlik limitni oshirish
+            new_count = db.increment_user_order_count(user_id)
+            
+            await message.answer(
+                f"✅ Zakazingiz yuborildi!\n\n"
+                f"Bugun yuborgan zakazlar: {new_count}/{db.MAX_ORDERS_PER_DAY}"
+            )
+        else:
+            await message.answer("❌ Xatolik: Zakaz yuborilmadi.")
+            
+    except Exception as e:
+        logger.error(f"Foydalanuvchi zakazini yuborishda xato: {e}")
+        await message.answer("❌ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
