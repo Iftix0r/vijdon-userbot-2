@@ -32,6 +32,18 @@ class TaxiUserbot:
         self.filtered_count = 0
         self.user_last_order = {}  # User ID -> timestamp (flood oldini olish)
     
+    async def notify_admins(self, message: str):
+        """Adminlarga xabar yuborish"""
+        try:
+            admins = db.get_all_admins()
+            for admin in admins:
+                try:
+                    await self.bot.send_message(admin['user_id'], message)
+                except Exception as e:
+                    logger.debug(f"Admin {admin['user_id']}ga xabar yuborib bo'lmadi: {e}")
+        except Exception as e:
+            logger.error(f"Adminlarga xabar yuborishda xato: {e}")
+    
     async def start(self):
         """Userbot'ni ishga tushirish"""
         
@@ -354,6 +366,12 @@ class TaxiUserbot:
             
         except Exception as e:
             logger.error(f"Xato: {e}", exc_info=True)
+            # Adminlarga xabar yuborish
+            error_msg = f"❌ **Xatolik yuz berdi!**\n\n"
+            error_msg += f"**Xato:** {str(e)}\n"
+            error_msg += f"**Guruh:** {chat_title if 'chat_title' in locals() else 'Noma\'lum'}\n"
+            error_msg += f"**Xabar:** {truncate_text(text, 100) if 'text' in locals() else 'Noma\'lum'}"
+            await self.notify_admins(error_msg)
     
     async def _forward_order(self, event, order_data: dict, chat_title: str, sender_name: str):
         """Buyurtmani barcha target guruhlarga yuborish (bot tokeni orqali)"""
