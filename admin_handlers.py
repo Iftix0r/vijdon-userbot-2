@@ -70,6 +70,7 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📤 Buyurtmalar guruhlari", callback_data="target_menu")],
         [InlineKeyboardButton(text="👁️ Qo'shimcha kuzatilayotgan", callback_data="monitored_menu")],
         [InlineKeyboardButton(text="🔑 Kalit so'zlar", callback_data="keywords_menu")],
+        [InlineKeyboardButton(text="📦 So'nggi zakazlar", callback_data="recent_orders")],
         [InlineKeyboardButton(text="🤖 AI Sozlamalari", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👥 Adminlar", callback_data="admins_menu")],
         [InlineKeyboardButton(text="📊 Statistika", callback_data="stats")],
@@ -615,6 +616,102 @@ async def show_stats(callback: CallbackQuery):
         reply_markup=back_keyboard(),
         parse_mode="Markdown"
     )
+
+
+# ============== RECENT ORDERS HANDLERS ==============
+
+@router.callback_query(F.data == "recent_orders")
+async def show_recent_orders(callback: CallbackQuery):
+    """So'nggi zakazlar"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Ruxsat yo'q!", show_alert=True)
+        return
+    
+    orders = db.get_recent_orders(10)
+    
+    if not orders:
+        await safe_edit_text(
+            callback.message,
+            "📦 **So'nggi zakazlar**\n\nHali zakazlar yo'q",
+            reply_markup=back_keyboard(),
+            parse_mode="Markdown"
+        )
+        return
+    
+    text = "📦 **So'nggi 10 ta zakaz**\n\n"
+    buttons = []
+    
+    for order in orders:
+        # Vaqtni formatlash
+        from datetime import datetime
+        created = datetime.fromisoformat(order['created_at'])
+        time_str = created.strftime("%d.%m %H:%M")
+        
+        # Qisqa ma'lumot
+        user_name = order['user_name'] or "Noma'lum"
+        phone = order['phone'] or "Telefon yo'q"
+        
+        # Xabar matnini qisqartirish
+        msg_preview = order['message_text'][:30] + "..." if len(order['message_text']) > 30 else order['message_text']
+        
+        text += f"🕐 {time_str} | {user_name}\n"
+        text += f"📞 {phone}\n"
+        text += f"💬 {msg_preview}\n"
+        
+        # Bloklash tugmasi
+        is_blocked = db.is_blocked(order['user_id'])
+        if is_blocked:
+            button_text = f"✅ Bloklangan: {user_name[:15]}"
+            callback_data = f"unblock_order:{order['user_id']}"
+        else:
+            button_text = f"🚫 Bloklash: {user_name[:15]}"
+            callback_data = f"block_order:{order['user_id']}"
+        
+        buttons.append([InlineKeyboardButton(text=button_text, callback_data=callback_data)])
+        text += "\n"
+    
+    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="main_menu")])
+    
+    await safe_edit_text(
+        callback.message,
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        parse_mode="Markdown"
+    )
+
+
+@router.callback_query(F.data.startswith("block_order:"))
+async def block_order_user(callback: CallbackQuery):
+    """Zakazdan foydalanuvchini bloklash"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Ruxsat yo'q!", show_alert=True)
+        return
+    
+    user_id = int(callback.data.split(":")[1])
+    
+    if db.block_user(user_id, blocked_by=callback.from_user.id, reason="Admin tomonidan bloklandi"):
+        await callback.answer("🚫 Foydalanuvchi bloklandi!", show_alert=True)
+        # Ro'yxatni yangilash
+        await show_recent_orders(callback)
+    else:
+        await callback.answer("❌ Xatolik", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("unblock_order:"))
+async def unblock_order_user(callback: CallbackQuery):
+    """Zakazdan foydalanuvchini blokdan chiqarish"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Ruxsat yo'q!", show_alert=True)
+        return
+    
+    user_id = int(callback.data.split(":")[1])
+    
+    if db.unblock_user(user_id):
+        await callback.answer("✅ Blokdan chiqarildi!", show_alert=True)
+        # Ro'yxatni yangilash
+        await show_recent_orders(callback)
+    else:
+        await callback.answer("❌ Xatolik", show_alert=True)
 
 
 # ============== AI SETTINGS HANDLERS ==============

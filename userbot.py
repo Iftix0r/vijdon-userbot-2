@@ -242,6 +242,14 @@ class TaxiUserbot:
             
             logger.debug(f"[{chat_title}] {sender_name}: {truncate_text(text, 50)}")
             
+            # Bloklangan foydalanuvchini tekshirish
+            user_id = sender.id if sender else 0
+            if db.is_blocked(user_id):
+                logger.debug(f"🚫 Bloklangan foydalanuvchi: {sender_name} ({user_id})")
+                self.filtered_count += 1
+                db.update_stats(filtered=1)
+                return
+            
             # Kalit so'zlarni tekshirish
             driver_keywords = db.get_keywords('driver')
             passenger_keywords = db.get_keywords('passenger')
@@ -467,6 +475,17 @@ class TaxiUserbot:
             self.forwarded_count += 1
             db.update_stats(forwarded=1)
             logger.info(f"✅ Buyurtma {len(target_groups)} ta guruhga yuborildi: {truncate_text(original_text, 40)}")
+            
+            # Zakazni database'ga saqlash
+            phone = order_data.get('phone') if order_data else None
+            db.add_order(
+                user_id=sender_id,
+                user_name=sender_name,
+                phone=phone,
+                message_text=original_text,
+                chat_id=chat.id,
+                chat_title=chat_title
+            )
             
         except Exception as e:
             logger.error(f"Yuborishda xato: {e}")

@@ -115,6 +115,20 @@ def init_database():
             )
         """)
         
+        # Zakazlar tarixi
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                user_name TEXT,
+                phone TEXT,
+                message_text TEXT,
+                chat_id INTEGER,
+                chat_title TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         conn.commit()
         logger.info("✅ Database yaratildi yoki mavjud")
 
@@ -547,6 +561,36 @@ def get_keywords(ktype: str = None) -> List[Dict]:
             cursor.execute("SELECT * FROM keywords WHERE type = ? ORDER BY word", (ktype,))
         else:
             cursor.execute("SELECT * FROM keywords ORDER BY type, word")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+# ============== ORDERS FUNCTIONS ==============
+
+def add_order(user_id: int, user_name: str, phone: str, message_text: str, 
+              chat_id: int, chat_title: str) -> bool:
+    """Zakazni saqlash"""
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO orders (user_id, user_name, phone, message_text, chat_id, chat_title)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, user_name, phone, message_text, chat_id, chat_title))
+            return True
+    except Exception as e:
+        logger.error(f"Zakaz saqlashda xato: {e}")
+        return False
+
+
+def get_recent_orders(limit: int = 10) -> List[Dict]:
+    """So'nggi zakazlarni olish"""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM orders 
+            ORDER BY created_at DESC 
+            LIMIT ?
+        """, (limit,))
         return [dict(row) for row in cursor.fetchall()]
 
 
