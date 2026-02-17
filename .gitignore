@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Telegram session files
+*.session
+*.session-journal
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+*.out
+nohup*.out
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+data.db
+taxi_bot.log
+taxi_userbot.session
+taxi_userbot.session-journal
+nohup_bot.out
+nohup_userbot.out
