@@ -461,8 +461,8 @@ class TaxiUserbot:
                 has_phone = True
             
             # 3. Asl xabar tugmasi
-            # Faqat bog'lanish imkoniyati yo'q bo'lsa (profil YO'Q yoki telefon YO'Q)
-            if message_link and not (has_profile and has_phone):
+            # Faqat profil tugmasi yo'q bo'lsa (bog'lanish imkoniyati yo'q)
+            if message_link and not has_profile:
                 # Guruh nomini qisqartirish
                 button_text = chat_title
                 if len(button_text) > 25:
