@@ -51,7 +51,11 @@ def format_order_message(order_data: dict, original_message: str = None,
         Formatlangan xabar (HTML)
     """
     
-    lines = [f"<b>🆕 Yangi buyurtma</b>", ""]
+    lines = [
+        "Asalomu alaykum Hurmatli Vijdon Taxi haydovchilari",
+        "Yangi Buyurtma Keldi 😊",
+        ""
+    ]
     
     # Ismi (profilga link)
     if sender_name and sender_id:
