@@ -407,7 +407,16 @@ class TaxiUserbot:
             chat = await event.get_chat()
             message_link = None
             if hasattr(chat, 'username') and chat.username:
+                # Public guruh
                 message_link = f"https://t.me/{chat.username}/{message.id}"
+            else:
+                # Private guruh - chat ID orqali
+                # Private guruhlar uchun: https://t.me/c/[chat_id_without_-100]/[message_id]
+                chat_id_str = str(chat.id)
+                if chat_id_str.startswith('-100'):
+                    clean_chat_id = chat_id_str[4:]  # -100 ni olib tashlash
+                    message_link = f"https://t.me/c/{clean_chat_id}/{message.id}"
+
             
             # Formatlash
             formatted = format_order_message(
@@ -422,8 +431,6 @@ class TaxiUserbot:
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
             
             buttons = []
-            has_profile = False
-            has_phone = False
             
             # 1. Mijozning ismi tugmasi (faqat tg://user?id orqali)
             if sender_id:
@@ -435,7 +442,6 @@ class TaxiUserbot:
                     button_name = button_name[:22] + "..."
                 
                 buttons.append([InlineKeyboardButton(text=f"👤 {button_name}", url=user_url)])
-                has_profile = True
             
             # 2. Telefon tugmasi (faqat telefon bo'lsa)
             if order_data and order_data.get("phone"):
@@ -449,12 +455,9 @@ class TaxiUserbot:
                 # onmap.uz/tel/ link
                 phone_url = f"https://onmap.uz/tel/{phone_for_url}"
                 buttons.append([InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url)])
-                has_phone = True
             
-            # 3. Asl xabar tugmasi
-            # Agar profil VA telefon ikkalasi ham bor bo'lsa - guruh tugmasi KERAK EMAS
-            # Agar profil YO'Q yoki telefon YO'Q bo'lsa - guruh tugmasi QO'SHILADI
-            if message_link and not (has_profile and has_phone):
+            # 3. Asl xabar tugmasi (har doim, agar link bo'lsa)
+            if message_link:
                 # Guruh nomini qisqartirish
                 button_text = chat_title
                 if len(button_text) > 25:
