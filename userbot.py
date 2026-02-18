@@ -422,6 +422,8 @@ class TaxiUserbot:
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
             
             buttons = []
+            has_profile = False
+            has_phone = False
             
             # 1. Mijozning ismi tugmasi (faqat tg://user?id orqali)
             if sender_id:
@@ -433,6 +435,7 @@ class TaxiUserbot:
                     button_name = button_name[:22] + "..."
                 
                 buttons.append([InlineKeyboardButton(text=f"👤 {button_name}", url=user_url)])
+                has_profile = True
             
             # 2. Telefon tugmasi (faqat telefon bo'lsa)
             if order_data and order_data.get("phone"):
@@ -446,9 +449,12 @@ class TaxiUserbot:
                 # onmap.uz/tel/ link
                 phone_url = f"https://onmap.uz/tel/{phone_for_url}"
                 buttons.append([InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url)])
+                has_phone = True
             
-            # 3. Asl xabar tugmasi (agar link bo'lsa)
-            if message_link:
+            # 3. Asl xabar tugmasi
+            # Agar profil VA telefon ikkalasi ham bor bo'lsa - guruh tugmasi KERAK EMAS
+            # Agar profil YO'Q yoki telefon YO'Q bo'lsa - guruh tugmasi QO'SHILADI
+            if message_link and not (has_profile and has_phone):
                 # Guruh nomini qisqartirish
                 button_text = chat_title
                 if len(button_text) > 25:
