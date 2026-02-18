@@ -74,12 +74,17 @@ def format_order_message(order_data: dict, original_message: str = None,
     
     lines.append("")  # Bo'sh qator
     
-    # Asl xabar matni (qisqartirilgan, oddiy matn)
+    # Asl xabar matni (qisqartirilgan, link bilan)
     if original_message:
         short_text = truncate_text(original_message, 100)
         # HTML maxsus belgilarini escape qilish
         safe_text = short_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        lines.append(f"💬 {safe_text}")
+        
+        # Agar message_link bo'lsa, xabar matnini link qilish
+        if message_link:
+            lines.append(f"💬 <a href='{message_link}'>{safe_text}</a>")
+        else:
+            lines.append(f"💬 {safe_text}")
     
     return "\n".join(lines)
 
