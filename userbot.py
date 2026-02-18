@@ -461,9 +461,8 @@ class TaxiUserbot:
                 phone_url = f"https://onmap.uz/tel/{phone_for_url}"
                 buttons.append([InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url)])
             
-            # 3. Asl xabar tugmasi
-            # Faqat username yo'q bo'lsa (bog'lanish imkoniyati yo'q)
-            if message_link and not has_username:
+            # 3. Asl xabar tugmasi (hamma uchun)
+            if message_link:
                 # Guruh nomini qisqartirish
                 button_text = chat_title
                 if len(button_text) > 25:
