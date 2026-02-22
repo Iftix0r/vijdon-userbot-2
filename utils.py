@@ -50,10 +50,10 @@ def format_order_message(order_data: dict, original_message: str = None,
     Returns:
         Formatlangan xabar (HTML)
     """
-    
+
     lines = [
-        "Asalomu alaykum Hurmatli Vijdon Taxi haydovchilari",
-        "Yangi Buyurtma Keldi 😊",
+        "Asalomu Alaykum OQ YOʻL Taxi Xaydovchilari 🚕",
+        "Buyurtmani Qabul Qiling 😊",
         ""
     ]
     
