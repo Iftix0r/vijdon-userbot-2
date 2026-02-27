@@ -152,7 +152,7 @@ async def cmd_start(message: Message):
     else:
         # Oddiy foydalanuvchi uchun zakaz berish
         await message.answer(
-            "🚕 **Vijdon Taxi**\n\n"
+            "🚕 **Tezkor Taxi**\n\n"
             "Zakaz berish uchun quyidagi formatda yuboring:\n\n"
             "📍 Qayerdan: [joy nomi]\n"
             "📍 Qayerga: [joy nomi]\n"
