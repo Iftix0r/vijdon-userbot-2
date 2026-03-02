@@ -57,7 +57,7 @@ def format_order_message(order_data: dict, original_message: str = None,
     time_str = now.strftime("%H:%M")
     
     lines = [
-        f"🚕 <b>YANGI ZAKAZ</b> • {time_str}",
+        f"🚕 <b>Vijdon Taxi</b> • {time_str}",
         ""
     ]
     

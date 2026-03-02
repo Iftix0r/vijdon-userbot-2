@@ -4,7 +4,7 @@
 
 ### Oddiy zakaz:
 ```
-🚕 YANGI ZAKAZ • 14:30
+🚕 Vijdon Taxi • 14:30
 
 💬 Chilonzor 9 dan Sergeli 5 ga 2 kishi kerak
 +998901234567
