@@ -254,11 +254,23 @@ class TaxiUserbot:
             phone = None
             if order_data and order_data.get("phone"):
                 phone = order_data["phone"]
-            else:
-                # Xabardan telefon izlash
-                phone_match = re.search(r'[\+]?[0-9]{9,13}', original_text.replace(" ", ""))
-                if phone_match:
-                    phone = phone_match.group()
+            
+            # Agar AI topilmagansa, regex orqali izlash
+            if not phone:
+                # Xabardan telefon izlash - turli formatlarni qo'llab-quvvatlash
+                # +998901234567, 998901234567, 901234567, +9 98 90 123 45 67 va h.k.
+                phone_patterns = [
+                    r'\+998\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}',  # +998 90 123 45 67
+                    r'\+998\d{9}',  # +998901234567
+                    r'998\d{9}',    # 998901234567
+                    r'(?<!\d)\d{9}(?!\d)',  # 901234567 (9 raqam)
+                ]
+                
+                for pattern in phone_patterns:
+                    phone_match = re.search(pattern, original_text.replace(" ", ""))
+                    if phone_match:
+                        phone = phone_match.group()
+                        break
             
             # Telefon raqamini formatlash
             if phone:
@@ -282,6 +294,10 @@ class TaxiUserbot:
             # Xabar formatlash - sodda format
             formatted = f"👤 Mijoz: {user_name}\n\n"
             formatted += f"💬 {short_text}"
+            
+            # Agar telefon topilmagansa, ogohlantirish qo'shish
+            if not phone_clean:
+                formatted += "\n\n❌ Telefon raqam topilmadi"
             
             # Inline tugmalar (aiogram format)
             buttons = []
