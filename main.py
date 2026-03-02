@@ -280,8 +280,7 @@ class TaxiUserbot:
                     user_link = f"[{user_name}](tg://user?id={sender.id})"
 
             # Xabar formatlash - sodda format
-            formatted = f"**🆕 Yangi buyurtma**\n\n"
-            formatted += f"👤 {user_link}\n\n"
+            formatted = f"👤 {user_link}\n\n"
             formatted += f"💬 {short_text}"
             
             # Inline tugmalar (aiogram format)
@@ -503,8 +502,7 @@ class TaxiUserbot:
                 elif hasattr(sender, 'id'):
                     user_link = f"[{user_name}](tg://user?id={sender.id})"
 
-            formatted = f"**🆕 Yangi buyurtma**\n\n"
-            formatted += f"👤 {user_link}\n\n"
+            formatted = f"👤 {user_link}\n\n"
             formatted += f"💬 {short_text}"
             
             buttons = []
@@ -552,8 +550,7 @@ class TaxiUserbot:
     async def run_forever(self):
         """Doimiy ishlash"""
         if self.client:
-            # Polling ham ishga tushirish
-            asyncio.create_task(self._poll_public_groups())
+            # Polling o'chirildi - faqat event handler ishlatiladi
             await self.client.run_until_disconnected()
 
 
