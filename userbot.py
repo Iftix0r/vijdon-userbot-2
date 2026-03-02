@@ -196,6 +196,13 @@ class TaxiUserbot:
             
             # Faqat bizning botimizdan kelgan xabarlarni ignore qilish (loop oldini olish)
             sender = await event.get_sender()
+            
+            # O'z userbot'dan kelgan xabarlarni ignore qilish
+            me = await self.client.get_me()
+            if sender and sender.id == me.id:
+                logger.debug(f"🔄 O'z xabarimiz ignore qilindi")
+                return
+            
             if sender and getattr(sender, 'bot', False):
                 # Bizning bot ID'si
                 our_bot_id = (await self.bot.get_me()).id
