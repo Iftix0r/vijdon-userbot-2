@@ -460,45 +460,50 @@ class TaxiUserbot:
             
             keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
             
-            # Barcha target guruhlarga yuborish (bot tokeni orqali)
+            # Havolalar qo'shish (userbot uchun)
+            links = []
+            
+            # Mijoz profili
+            if sender_id:
+                user_link = f"<a href='tg://user?id={sender_id}'>👤 {sender_name}</a>"
+                links.append(user_link)
+            
+            # Telefon
+            if order_data and order_data.get("phone"):
+                phone = order_data['phone']
+                clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
+                phone_for_url = clean_phone.replace("+", "")
+                phone_link = f"<a href='https://onmap.uz/tel/{phone_for_url}'>📞 {clean_phone}</a>"
+                links.append(phone_link)
+            
+            # Asl xabar (mahfiy akkaunt uchun)
+            has_username = sender and hasattr(sender, 'username') and sender.username
+            if message_link and not has_username:
+                msg_link = f"<a href='{message_link}'>📨 Asl xabar</a>"
+                links.append(msg_link)
+            
+            # Havolalarni qo'shish
+            if links:
+                formatted += "\n\n" + " | ".join(links)
+            
+            # Barcha target guruhlarga yuborish (userbot orqali)
             success_count = 0
             for target_group in target_groups:
                 try:
-                    await self.bot.send_message(
+                    await self.client.send_message(
                         target_group,
                         formatted,
-                        parse_mode=ParseMode.HTML,
-                        disable_web_page_preview=True,
-                        reply_markup=keyboard
+                        parse_mode='html',
+                        link_preview=False
                     )
                     success_count += 1
                     logger.debug(f"   ✓ Guruh {target_group}ga yuborildi")
                     
-                    # Flood oldini olish uchun pauza (0.5 soniya)
                     if success_count < len(target_groups):
                         await asyncio.sleep(0.5)
                         
                 except Exception as e:
-                    error_msg = str(e)
-                    # Agar tugma xato bo'lsa, tugmasiz yuborishga harakat
-                    if "BUTTON_USER_INVALID" in error_msg or "BUTTON" in error_msg:
-                        try:
-                            logger.debug(f"   ⚠️ Tugma xato, tugmasiz yuborilmoqda...")
-                            await self.bot.send_message(
-                                target_group,
-                                formatted,
-                                parse_mode=ParseMode.HTML,
-                                disable_web_page_preview=True
-                            )
-                            success_count += 1
-                            logger.debug(f"   ✓ Guruh {target_group}ga tugmasiz yuborildi")
-                            
-                            if success_count < len(target_groups):
-                                await asyncio.sleep(0.5)
-                        except Exception as e2:
-                            logger.error(f"   ✗ Guruh {target_group}ga yuborishda xato: {e2}")
-                    else:
-                        logger.error(f"   ✗ Guruh {target_group}ga yuborishda xato: {e}")
+                    logger.error(f"   ✗ Guruh {target_group}ga yuborishda xato: {e}")
             
             self.forwarded_count += 1
             db.update_stats(forwarded=1)
