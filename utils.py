@@ -50,41 +50,31 @@ def format_order_message(order_data: dict, original_message: str = None,
     Returns:
         Formatlangan xabar (HTML)
     """
+    from datetime import datetime
 
+    # Joriy vaqt
+    now = datetime.now()
+    time_str = now.strftime("%H:%M")
+    
     lines = [
-        "Asalomu Alaykum OQ YOʻL Taxi Xaydovchilari 🚕",
-        "Buyurtmani Qabul Qiling 😊",
+        f"🚕 <b>YANGI ZAKAZ</b> • {time_str}",
         ""
     ]
     
-    # Ismi (profilga link)
-    if sender_name and sender_id:
-        safe_name = sender_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        user_link = f'<a href="tg://user?id={sender_id}">{safe_name}</a>'
-        lines.append(f"👤 {user_link}")
-    elif sender_name:
-        safe_name = sender_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        lines.append(f"👤 {safe_name}")
-    
-    lines.append("")  # Bo'sh qator
-    
-    # Telefon (agar bo'lsa)
-    if order_data and order_data.get("phone"):
-        lines.append(f"📞 {order_data['phone']}")
-    
-    lines.append("")  # Bo'sh qator
-    
-    # Asl xabar matni (qisqartirilgan, link bilan)
+    # Asl xabar matni
     if original_message:
-        short_text = truncate_text(original_message, 100)
-        # HTML maxsus belgilarini escape qilish
-        safe_text = short_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        
-        # Agar message_link bo'lsa, xabar matnini link qilish
-        if message_link:
-            lines.append(f"💬 <a href='{message_link}'>{safe_text}</a>")
-        else:
-            lines.append(f"💬 {safe_text}")
+        safe_text = original_message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        lines.append(f"💬 {safe_text}")
+        lines.append("")
+    
+    # Qo'shimcha ma'lumotlar (agar AI topgan bo'lsa)
+    if order_data:
+        if order_data.get("from_location"):
+            lines.append(f"📍 <b>Qayerdan:</b> {order_data['from_location']}")
+        if order_data.get("to_location"):
+            lines.append(f"📍 <b>Qayerga:</b> {order_data['to_location']}")
+        if order_data.get("passengers"):
+            lines.append(f"👥 <b>Yo'lovchilar:</b> {order_data['passengers']}")
     
     return "\n".join(lines)
 

@@ -431,45 +431,33 @@ class TaxiUserbot:
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
             
             buttons = []
-            has_username = False
             
-            # Username borligini tekshirish
-            if sender and hasattr(sender, 'username') and sender.username:
-                has_username = True
+            # 1-qator: Mijoz profili va telefon
+            row1 = []
             
-            # 1. Mijozning ismi tugmasi (faqat tg://user?id orqali)
+            # Mijoz profili tugmasi
             if sender_id:
                 user_url = f"tg://user?id={sender_id}"
-                
-                # Ismni qisqartirish (max 25 belgi)
-                button_name = sender_name
-                if len(button_name) > 25:
-                    button_name = button_name[:22] + "..."
-                
-                buttons.append([InlineKeyboardButton(text=f"👤 {button_name}", url=user_url)])
+                button_name = sender_name[:20] + "..." if len(sender_name) > 20 else sender_name
+                row1.append(InlineKeyboardButton(text=f"👤 {button_name}", url=user_url))
             
-            # 2. Telefon tugmasi (faqat telefon bo'lsa)
+            # Telefon tugmasi
             if order_data and order_data.get("phone"):
                 phone = order_data['phone']
-                # Telefon raqamini tozalash (faqat raqamlar va +)
                 clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
-                
-                # + belgisini olib tashlash (URL uchun)
                 phone_for_url = clean_phone.replace("+", "")
-                
-                # onmap.uz/tel/ link
                 phone_url = f"https://onmap.uz/tel/{phone_for_url}"
-                buttons.append([InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url)])
+                row1.append(InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url))
             
-            # 3. Asl xabar tugmasi (faqat username yo'q bo'lsa - mahfiy akkaunt)
+            if row1:
+                buttons.append(row1)
+            
+            # 2-qator: Asl xabar (faqat mahfiy akkaunt uchun)
+            has_username = sender and hasattr(sender, 'username') and sender.username
             if message_link and not has_username:
-                # Guruh nomini qisqartirish
-                button_text = chat_title
-                if len(button_text) > 25:
-                    button_text = button_text[:22] + "..."
-                buttons.append([InlineKeyboardButton(text=f"📨 Guruhdagi xabarni ko'rish", url=message_link)])
+                button_text = "Guruhdagi xabarni ko'rish"
+                buttons.append([InlineKeyboardButton(text=f"📨 {button_text}", url=message_link)])
             
-            # Tugmalar bo'lmasa ham keyboard None bo'ladi
             keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
             
             # Barcha target guruhlarga yuborish (bot tokeni orqali)

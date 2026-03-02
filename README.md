@@ -12,6 +12,8 @@ Telegram taxi bot - guruhlardan zakazlarni avtomatik kuzatish va yuborish tizimi
 - 📞 **Telefon aniqlash** - AI va regex orqali telefon raqamlarni topish
 - 🚫 **Emoji filtri** - Ko'p emoji bo'lgan xabarlarni filtrlash
 - ⏱️ **Flood himoyasi** - Bir foydalanuvchidan 30 soniya ichida faqat 1 zakaz
+- 🎯 **Chiroyli format** - Zakazlar strukturalangan va tushunarli formatda
+- 🔘 **Interaktiv knopkalar** - Mijoz profili, telefon va asl xabar uchun knopkalar
 
 ## O'rnatish
 
@@ -90,6 +92,27 @@ bash start.sh
    - Target guruh qo'shing (zakazlar yuboriladigan guruh)
    - Kalit so'zlar qo'shing (haydovchi/yo'lovchi)
    - Statistikani ko'ring
+
+## Zakaz Formati
+
+Zakazlar quyidagi formatda yuboriladi:
+
+```
+🚕 YANGI ZAKAZ • 14:30
+
+💬 Chilonzor 9 dan Sergeli 5 ga 2 kishi kerak +998901234567
+
+📍 Qayerdan: Chilonzor 9
+📍 Qayerga: Sergeli 5
+👥 Yo'lovchilar: 2
+```
+
+**Interaktiv knopkalar:**
+- 👤 **Mijoz profili** - To'g'ridan-to'g'ri mijozning Telegram profiliga o'tish
+- 📞 **Telefon raqam** - onmap.uz orqali telefon qilish
+- 📨 **Asl xabar** - Guruhda asl xabarni ko'rish (mahfiy akkauntlar uchun)
+
+Batafsil ma'lumot: [ZAKAZ_FORMAT.md](ZAKAZ_FORMAT.md)
 
 ## Kalit so'zlar
 

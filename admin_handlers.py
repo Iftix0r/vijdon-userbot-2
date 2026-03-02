@@ -1460,13 +1460,14 @@ async def handle_user_order(message: Message):
         
         buttons = []
         
+        # 1-qator: Mijoz profili va telefon
+        row1 = []
+        
         # Profil tugmasi
         if sender_id:
             user_url = f"tg://user?id={sender_id}"
-            button_name = sender_name
-            if len(button_name) > 25:
-                button_name = button_name[:22] + "..."
-            buttons.append([InlineKeyboardButton(text=f"👤 {button_name}", url=user_url)])
+            button_name = sender_name[:20] + "..." if len(sender_name) > 20 else sender_name
+            row1.append(InlineKeyboardButton(text=f"👤 {button_name}", url=user_url))
         
         # Telefon tugmasi
         if order_data and order_data.get("phone"):
@@ -1474,7 +1475,10 @@ async def handle_user_order(message: Message):
             clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
             phone_for_url = clean_phone.replace("+", "")
             phone_url = f"https://onmap.uz/tel/{phone_for_url}"
-            buttons.append([InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url)])
+            row1.append(InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url))
+        
+        if row1:
+            buttons.append(row1)
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
         
