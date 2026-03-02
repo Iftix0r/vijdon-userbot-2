@@ -280,7 +280,7 @@ class TaxiUserbot:
                     user_link = f"[{user_name}](tg://user?id={sender.id})"
 
             # Xabar formatlash - sodda format
-            formatted = f"👤 {user_link}\n\n"
+            formatted = f"👤 Mijoz: {user_name}\n\n"
             formatted += f"💬 {short_text}"
             
             # Inline tugmalar (aiogram format)
@@ -502,7 +502,7 @@ class TaxiUserbot:
                 elif hasattr(sender, 'id'):
                     user_link = f"[{user_name}](tg://user?id={sender.id})"
 
-            formatted = f"👤 {user_link}\n\n"
+            formatted = f"👤 Mijoz: {user_name}\n\n"
             formatted += f"💬 {short_text}"
             
             buttons = []
