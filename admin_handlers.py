@@ -1446,7 +1446,12 @@ async def handle_user_order(message: Message, userbot = None):
         phone_clean = order_data.get("phone")
         
         # Formatlash - Rasmda ko'rsatilgan format
-        formatted = f"👤 {sender_name}"
+        if sender_id:
+            user_link = f"tg://user?id={sender_id}"
+            formatted = f"👤 [{sender_name}]({user_link})"
+        else:
+            formatted = f"👤 {sender_name}"
+            
         if sender_username:
             formatted += f" (@{sender_username})"
         
@@ -1454,8 +1459,7 @@ async def handle_user_order(message: Message, userbot = None):
         
         if phone_clean:
             formatted += f"📞 {phone_clean}"
-        else:
-            formatted += "📞 Telefon raqam topilmadi"
+        # Raqam yo'q bo'lsa, hech qanday yozuv chiqmaydi
         
         # Yuborish (Endi akkaunt orqali)
         success_count = 0
@@ -1464,7 +1468,8 @@ async def handle_user_order(message: Message, userbot = None):
                 try:
                     await userbot.client.send_message(
                         entity=target_group,
-                        message=formatted
+                        message=formatted,
+                        parse_mode='md'
                     )
                     success_count += 1
                 except Exception as e:
@@ -1475,7 +1480,8 @@ async def handle_user_order(message: Message, userbot = None):
                 try:
                     await message.bot.send_message(
                         chat_id=target_group,
-                        text=formatted
+                        text=formatted,
+                        parse_mode="Markdown"
                     )
                     success_count += 1
                 except Exception as e:

@@ -293,7 +293,12 @@ class TaxiUserbot:
                     user_link = f"[{user_name}](tg://user?id={sender.id})"
 
             # Xabar formatlash - Rasmda ko'rsatilgan format
-            formatted = f"👤 {user_name}"
+            if sender_id:
+                user_link = f"tg://user?id={sender_id}"
+                formatted = f"👤 [{user_name}]({user_link})"
+            else:
+                formatted = f"👤 {user_name}"
+                
             if sender and hasattr(sender, 'username') and sender.username:
                 formatted += f" (@{sender.username})"
             
@@ -301,8 +306,7 @@ class TaxiUserbot:
             
             if phone_clean:
                 formatted += f"📞 {phone_clean}"
-            else:
-                formatted += "📞 Telefon raqam topilmadi"
+            # Raqam yo'q bo'lsa, hech qanday yozuv chiqmaydi
             
             # Barcha target guruhlarga yuborish (Endi akkaunt orqali)
             for target_group in target_groups:
@@ -310,7 +314,7 @@ class TaxiUserbot:
                     await self.client.send_message(
                         entity=target_group,
                         message=formatted,
-                        # parse_mode=None  # Plain text
+                        parse_mode='md'  # Markdown linklar ishlashi uchun
                     )
                 except Exception as e:
                     logger.error(f"Guruhga yuborishda xato ({target_group}): {e}")
@@ -470,7 +474,13 @@ class TaxiUserbot:
             user_name = sender_name
             short_text = original_text[:100] if len(original_text) > 100 else original_text
             
-            formatted = f"👤 {user_name}"
+            sender_id = sender.id if sender else 0
+            if sender_id:
+                user_link = f"tg://user?id={sender_id}"
+                formatted = f"👤 [{user_name}]({user_link})"
+            else:
+                formatted = f"👤 {user_name}"
+                
             if sender and hasattr(sender, 'username') and sender.username:
                 formatted += f" (@{sender.username})"
             
@@ -506,15 +516,15 @@ class TaxiUserbot:
 
             if phone_clean:
                 formatted += f"📞 {phone_clean}"
-            else:
-                formatted += "📞 Telefon raqam topilmadi"
+            # Raqam yo'q bo'lsa, hech qanday yozuv chiqmaydi
 
             # Barcha target guruhlarga yuborish (Endi akkaunt orqali)
             for target_group in target_groups:
                 try:
                     await self.client.send_message(
                         entity=target_group,
-                        message=formatted
+                        message=formatted,
+                        parse_mode='md'
                     )
                 except Exception as e:
                     pass

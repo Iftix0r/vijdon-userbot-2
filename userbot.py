@@ -410,7 +410,12 @@ class TaxiUserbot:
                 phone_clean = profile_phone
             
             # Formatlash - Rasmda ko'rsatilgan format
-            formatted = f"👤 {sender_name}"
+            if sender_id:
+                user_link = f"tg://user?id={sender_id}"
+                formatted = f"👤 [{sender_name}]({user_link})"
+            else:
+                formatted = f"👤 {sender_name}"
+            
             if sender_username:
                 formatted += f" (@{sender_username})"
             
@@ -418,8 +423,7 @@ class TaxiUserbot:
             
             if phone_clean:
                 formatted += f"📞 {phone_clean}"
-            else:
-                formatted += "📞 Telefon raqam topilmadi"
+            # Raqam yo'q bo'lsa, hech qanday yozuv chiqmaydi
             
             # Barcha target guruhlarga yuborish
             success_count = 0
@@ -427,7 +431,8 @@ class TaxiUserbot:
                 try:
                     await self.client.send_message(
                         target_group,
-                        formatted
+                        formatted,
+                        parse_mode='md'
                     )
                     success_count += 1
                     logger.debug(f"   ✓ Guruh {target_group}ga yuborildi")
