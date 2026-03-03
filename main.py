@@ -336,12 +336,7 @@ class TaxiUserbot:
         if hasattr(sender, 'last_name') and sender.last_name:
             parts.append(sender.last_name)
         
-        name = " ".join(parts) if parts else "Foydalanuvchi"
-        
-        if hasattr(sender, 'username') and sender.username:
-            name += f" (@{sender.username})"
-        
-        return name
+        return " ".join(parts) if parts else "Foydalanuvchi"
     
     async def _poll_public_groups(self):
         """Ommaviy guruhlardan xabarlarni polling qilish (a'zo bo'lmasdan)"""

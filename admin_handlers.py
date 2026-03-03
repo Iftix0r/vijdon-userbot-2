@@ -1374,12 +1374,12 @@ async def delete_monitored(callback: CallbackQuery):
 
 # ============== USER ORDER HANDLERS ==============
 
-@router.message(F.text)
+@router.message(F.chat.type == "private", F.text)
 async def handle_user_order(message: Message, userbot = None):
-    """Oddiy foydalanuvchilardan zakaz qabul qilish"""
+    """Oddiy foydalanuvchilardan zakaz qabul qilish (faqat lichkada)"""
     user_id = message.from_user.id
     
-    # Adminlar uchun bu handler ishlamaydi (ular callback'lardan foydalanadi)
+    # Adminlar uchun bu handler ishlamaydi (ular uchun callback'lar bor)
     if is_admin(user_id):
         return
     
