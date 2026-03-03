@@ -407,27 +407,15 @@ def get_total_stats() -> Dict:
 
 # ============== USER ORDER LIMIT FUNCTIONS ==============
 
-MAX_ORDERS_PER_DAY = 3  # Kunlik maksimal zakaz soni
+MAX_ORDERS_PER_DAY = 999999  # Kunlik maksimal zakaz soni (cheklanmagan)
 
 def check_user_daily_limit(user_id: int) -> bool:
     """Foydalanuvchi kunlik limitdan o'tganmi tekshirish
     
     Returns:
-        True - yana zakaz qilishi mumkin
-        False - limit tugagan
+        True - har doim yangi zakaz qila oladi (cheklanmagan)
     """
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        today = datetime.now().strftime("%Y-%m-%d")
-        cursor.execute(
-            "SELECT order_count FROM user_orders WHERE user_id = ? AND date = ?",
-            (user_id, today)
-        )
-        row = cursor.fetchone()
-        
-        if row:
-            return row['order_count'] < MAX_ORDERS_PER_DAY
-        return True  # Hali zakaz qilmagan
+    return True
 
 
 def increment_user_order_count(user_id: int) -> int:

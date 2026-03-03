@@ -1375,7 +1375,7 @@ async def delete_monitored(callback: CallbackQuery):
 # ============== USER ORDER HANDLERS ==============
 
 @router.message(F.text)
-async def handle_user_order(message: Message):
+async def handle_user_order(message: Message, userbot = None):
     """Oddiy foydalanuvchilardan zakaz qabul qilish"""
     user_id = message.from_user.id
     
@@ -1388,16 +1388,16 @@ async def handle_user_order(message: Message):
         await message.answer("🚫 Siz bloklangansiz. Zakaz bera olmaysiz.")
         return
     
-    # Kunlik limit tekshirish
-    if not db.check_user_daily_limit(user_id):
-        order_count = db.get_user_order_count(user_id)
-        await message.answer(
-            f"⚠️ Kunlik limit tugadi!\n\n"
-            f"Siz bugun {order_count} ta zakaz yubordingiz.\n"
-            f"Maksimal: {db.MAX_ORDERS_PER_DAY} ta zakaz/kun\n\n"
-            f"Ertaga qayta urinib ko'ring."
-        )
-        return
+    # Kunlik limit tekshirish (Endi cheklanmagan)
+    # if not db.check_user_daily_limit(user_id):
+    #     order_count = db.get_user_order_count(user_id)
+    #     await message.answer(
+    #         f"⚠️ Kunlik limit tugadi!\n\n"
+    #         f"Siz bugun {order_count} ta zakaz yubordingiz.\n"
+    #         f"Maksimal: {db.MAX_ORDERS_PER_DAY} ta zakaz/kun\n\n"
+    #         f"Ertaga qayta urinib ko'ring."
+    #     )
+    #     return
     
     text = message.text
     
@@ -1438,65 +1438,49 @@ async def handle_user_order(message: Message):
         return
     
     try:
-        from aiogram import Bot
         from aiogram.enums import ParseMode
-        from utils import format_order_message
         
-        bot = message.bot
         sender_name = message.from_user.full_name
+        sender_username = message.from_user.username
         sender_id = message.from_user.id
+        phone_clean = order_data.get("phone")
         
-        # Formatlash
-        formatted = format_order_message(
-            order_data,
-            original_message=text,
-            message_link=None,
-            sender_name=sender_name,
-            sender_id=sender_id
-        )
+        # Formatlash - Rasmda ko'rsatilgan format
+        formatted = f"👤 {sender_name}"
+        if sender_username:
+            formatted += f" (@{sender_username})"
         
-        # Tugmalar
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        formatted += f"\n\n💬 {text}\n\n"
         
-        buttons = []
+        if phone_clean:
+            formatted += f"📞 {phone_clean}"
+        else:
+            formatted += "📞 Telefon raqam topilmadi"
         
-        # 1-qator: Mijoz profili va telefon
-        row1 = []
-        
-        # Profil tugmasi
-        if sender_id:
-            user_url = f"tg://user?id={sender_id}"
-            button_name = sender_name[:20] + "..." if len(sender_name) > 20 else sender_name
-            row1.append(InlineKeyboardButton(text=f"👤 {button_name}", url=user_url))
-        
-        # Telefon tugmasi
-        if order_data and order_data.get("phone"):
-            phone = order_data['phone']
-            clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
-            phone_for_url = clean_phone.replace("+", "")
-            phone_url = f"https://onmap.uz/tel/{phone_for_url}"
-            row1.append(InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url))
-        
-        if row1:
-            buttons.append(row1)
-        
-        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
-        
-        # Yuborish
+        # Yuborish (Endi akkaunt orqali)
         success_count = 0
-        for target_group in target_groups:
-            try:
-                await bot.send_message(
-                    target_group,
-                    formatted,
-                    parse_mode=ParseMode.HTML,
-                    disable_web_page_preview=True,
-                    reply_markup=keyboard
-                )
-                success_count += 1
-            except Exception as e:
-                logger.error(f"Target guruhga yuborishda xato: {e}")
-        
+        if userbot and userbot.client:
+            for target_group in target_groups:
+                try:
+                    await userbot.client.send_message(
+                        entity=target_group,
+                        message=formatted
+                    )
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"Target guruhga yuborishda xato: {e}")
+        else:
+            # Fallback - bot orqali (juda zarur bo'lsa)
+            for target_group in target_groups:
+                try:
+                    await message.bot.send_message(
+                        chat_id=target_group,
+                        text=formatted
+                    )
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"Target guruhga yuborishda xato (Bot fallback): {e}")
+
         if success_count > 0:
             # Zakazni saqlash
             db.add_order(
@@ -1508,12 +1492,8 @@ async def handle_user_order(message: Message):
                 chat_title="Private"
             )
             
-            # Kunlik limitni oshirish
-            new_count = db.increment_user_order_count(user_id)
-            
             await message.answer(
-                f"✅ Zakazingiz yuborildi!\n\n"
-                f"Bugun yuborgan zakazlar: {new_count}/{db.MAX_ORDERS_PER_DAY}"
+                "✅ Zakazingiz yuborildi!"
             )
         else:
             await message.answer("❌ Xatolik: Zakaz yuborilmadi.")

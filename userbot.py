@@ -381,7 +381,7 @@ class TaxiUserbot:
             await self.notify_admins(error_msg)
     
     async def _forward_order(self, event, order_data: dict, chat_title: str, sender_name: str):
-        """Buyurtmani barcha target guruhlarga yuborish (bot tokeni orqali)"""
+        """Buyurtmani barcha target guruhlarga yuborish (Akkaunt orqali)"""
         
         target_groups = db.get_target_groups()
         if not target_groups:
@@ -403,105 +403,31 @@ class TaxiUserbot:
                 profile_phone = sender.phone
                 if not profile_phone.startswith('+'):
                     profile_phone = '+' + profile_phone
-                logger.debug(f"📞 Profil telefoni topildi: {profile_phone}")
             
-            # Agar xabarda telefon yo'q bo'lsa, profil telefonini ishlatish
-            if order_data and not order_data.get("phone") and profile_phone:
-                order_data["phone"] = profile_phone
-                logger.info(f"📞 Profil telefoni ishlatildi: {profile_phone}")
+            # Xabardan yoki profildan telefon raqamni aniqlash
+            phone_clean = order_data.get("phone")
+            if not phone_clean and profile_phone:
+                phone_clean = profile_phone
             
-            # Asl xabarning linki
-            chat = await event.get_chat()
-            message_link = None
-            if hasattr(chat, 'username') and chat.username:
-                # Public guruh
-                message_link = f"https://t.me/{chat.username}/{message.id}"
+            # Formatlash - Rasmda ko'rsatilgan format
+            formatted = f"👤 {sender_name}"
+            if sender_username:
+                formatted += f" (@{sender_username})"
+            
+            formatted += f"\n\n💬 {original_text}\n\n"
+            
+            if phone_clean:
+                formatted += f"📞 {phone_clean}"
             else:
-                # Private guruh - chat ID orqali
-                # Private guruhlar uchun: https://t.me/c/[chat_id_without_-100]/[message_id]
-                chat_id_str = str(chat.id)
-                if chat_id_str.startswith('-100'):
-                    clean_chat_id = chat_id_str[4:]  # -100 ni olib tashlash
-                    message_link = f"https://t.me/c/{clean_chat_id}/{message.id}"
-
+                formatted += "📞 Telefon raqam topilmadi"
             
-            # Formatlash
-            formatted = format_order_message(
-                order_data, 
-                original_message=original_text,
-                message_link=message_link, 
-                sender_name=sender_name,
-                sender_id=sender_id
-            )
-            
-            # Tugmalar
-            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-            
-            buttons = []
-            
-            # 1-qator: Mijoz profili va telefon
-            row1 = []
-            
-            # Mijoz profili tugmasi
-            if sender_id:
-                user_url = f"tg://user?id={sender_id}"
-                button_name = sender_name[:20] + "..." if len(sender_name) > 20 else sender_name
-                row1.append(InlineKeyboardButton(text=f"👤 {button_name}", url=user_url))
-            
-            # Telefon tugmasi
-            if order_data and order_data.get("phone"):
-                phone = order_data['phone']
-                clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
-                phone_for_url = clean_phone.replace("+", "")
-                phone_url = f"https://onmap.uz/tel/{phone_for_url}"
-                row1.append(InlineKeyboardButton(text=f"📞 {clean_phone}", url=phone_url))
-            
-            if row1:
-                buttons.append(row1)
-            
-            # 2-qator: Asl xabar (faqat mahfiy akkaunt uchun)
-            has_username = sender and hasattr(sender, 'username') and sender.username
-            if message_link and not has_username:
-                button_text = "Guruhdagi xabarni ko'rish"
-                buttons.append([InlineKeyboardButton(text=f"📨 {button_text}", url=message_link)])
-            
-            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
-            
-            # Havolalar qo'shish (userbot uchun)
-            links = []
-            
-            # Mijoz profili
-            if sender_id:
-                user_link = f"<a href='tg://user?id={sender_id}'>👤 {sender_name}</a>"
-                links.append(user_link)
-            
-            # Telefon
-            if order_data and order_data.get("phone"):
-                phone = order_data['phone']
-                clean_phone = "".join(c for c in phone if c.isdigit() or c == "+")
-                phone_for_url = clean_phone.replace("+", "")
-                phone_link = f"<a href='https://onmap.uz/tel/{phone_for_url}'>📞 {clean_phone}</a>"
-                links.append(phone_link)
-            
-            # Asl xabar (mahfiy akkaunt uchun)
-            has_username = sender and hasattr(sender, 'username') and sender.username
-            if message_link and not has_username:
-                msg_link = f"<a href='{message_link}'>📨 Asl xabar</a>"
-                links.append(msg_link)
-            
-            # Havolalarni qo'shish
-            if links:
-                formatted += "\n\n" + " | ".join(links)
-            
-            # Barcha target guruhlarga yuborish (userbot orqali)
+            # Barcha target guruhlarga yuborish
             success_count = 0
             for target_group in target_groups:
                 try:
                     await self.client.send_message(
                         target_group,
-                        formatted,
-                        parse_mode='html',
-                        link_preview=False
+                        formatted
                     )
                     success_count += 1
                     logger.debug(f"   ✓ Guruh {target_group}ga yuborildi")
@@ -514,16 +440,15 @@ class TaxiUserbot:
             
             self.forwarded_count += 1
             db.update_stats(forwarded=1)
-            logger.info(f"✅ Buyurtma {len(target_groups)} ta guruhga yuborildi: {truncate_text(original_text, 40)}")
+            logger.info(f"✅ Akkaunt orqali yuborildi: {truncate_text(original_text, 40)}")
             
             # Zakazni database'ga saqlash
-            phone = order_data.get('phone') if order_data else None
             db.add_order(
                 user_id=sender_id,
                 user_name=sender_name,
-                phone=phone,
+                phone=phone_clean,
                 message_text=original_text,
-                chat_id=chat.id,
+                chat_id=event.chat_id,
                 chat_title=chat_title
             )
             

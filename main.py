@@ -166,10 +166,10 @@ class TaxiUserbot:
                 logger.debug(f"Bloklangan: {sender_id}")
                 return
             
-            # Kunlik limit tekshirish (OpenAI API tejash uchun)
-            if sender_id and not db.check_user_daily_limit(sender_id):
-                logger.debug(f"Limit tugagan: {sender_id}")
-                return
+            # Kunlik limit tekshirish (Endi cheklanmagan)
+            # if sender_id and not db.check_user_daily_limit(sender_id):
+            #     logger.debug(f"Limit tugagan: {sender_id}")
+            #     return
             
             # Kalit so'zlar bilan tekshirish
             text_lower = text.lower()
@@ -292,73 +292,32 @@ class TaxiUserbot:
                 elif hasattr(sender, 'id'):
                     user_link = f"[{user_name}](tg://user?id={sender.id})"
 
-            # Xabar formatlash - sodda format
-            formatted = f"👤 Mijoz: {user_name}\n\n"
-            formatted += f"💬 {short_text}"
+            # Xabar formatlash - Rasmda ko'rsatilgan format
+            formatted = f"👤 {user_name}"
+            if sender and hasattr(sender, 'username') and sender.username:
+                formatted += f" (@{sender.username})"
             
-            # Agar telefon topilmagansa, ogohlantirish qo'shish
-            if not phone_clean:
-                formatted += "\n\n❌ Telefon raqam topilmadi"
-            
-            # Inline tugmalar (aiogram format)
-            buttons = []
-            
-            # 1-qator: Xabar va Guruh
-            row1 = []
-            if hasattr(chat, 'username') and chat.username:
-                msg_link = f"https://t.me/{chat.username}/{message.id}"
-                row1.append(InlineKeyboardButton(text="📨 Xabar", url=msg_link))
-                row1.append(InlineKeyboardButton(text="👥 Guruh", url=f"https://t.me/{chat.username}"))
-            
-            if row1:
-                buttons.append(row1)
-            
-            # 2-qator: Telefon va Yozish
-            row2 = []
-            
-            # Telefon - xabardan yoki profildan
-            if not phone_clean and sender and hasattr(sender, 'phone') and sender.phone:
-                phone_clean = sender.phone
-                if not phone_clean.startswith('+'):
-                    phone_clean = '+' + phone_clean
+            formatted += f"\n\n💬 {short_text}\n\n"
             
             if phone_clean:
-                phone_url = f"https://onmap.uz/tel/{phone_clean}"
-                row2.append(InlineKeyboardButton(text=f"📞 {phone_clean}", url=phone_url))
+                formatted += f"📞 {phone_clean}"
+            else:
+                formatted += "📞 Telefon raqam topilmadi"
             
-            if sender and hasattr(sender, 'username') and sender.username:
-                row2.append(InlineKeyboardButton(text="✍️ Yozish", url=f"https://t.me/{sender.username}"))
-            elif sender and hasattr(sender, 'id'):
-                row2.append(InlineKeyboardButton(text="✍️ Yozish", url=f"tg://user?id={sender.id}"))
-            
-            if row2:
-                buttons.append(row2)
-            
-            # 3-qator: Bloklash tugmasi (admin uchun)
-            sender_id = sender.id if sender else 0
-            if sender_id:
-                buttons.append([
-                    InlineKeyboardButton(text="🚫 Bloklash", callback_data=f"block_user:{sender_id}")
-                ])
-            
-            # Keyboard yaratish
-            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
-            
-            # Barcha target guruhlarga yuborish
+            # Barcha target guruhlarga yuborish (Endi akkaunt orqali)
             for target_group in target_groups:
                 try:
-                    await self.admin_bot.send_message(
-                        chat_id=target_group,
-                        text=formatted,
-                        reply_markup=keyboard,
-                        parse_mode="Markdown"
+                    await self.client.send_message(
+                        entity=target_group,
+                        message=formatted,
+                        # parse_mode=None  # Plain text
                     )
                 except Exception as e:
                     logger.error(f"Guruhga yuborishda xato ({target_group}): {e}")
             
             self.forwarded_count += 1
             db.update_stats(forwarded=1)
-            logger.info(f"✅ Yuborildi: {truncate_text(original_text, 40)}")
+            logger.info(f"✅ Akkaunt orqali yuborildi: {truncate_text(original_text, 40)}")
             
         except Exception as e:
             logger.error(f"Yuborishda xato: {e}", exc_info=True)
@@ -449,9 +408,9 @@ class TaxiUserbot:
             if sender_id and db.is_blocked(sender_id):
                 return
             
-            # Limit tekshirish
-            if sender_id and not db.check_user_daily_limit(sender_id):
-                return
+            # Limit tekshirish (Endi cheklanmagan)
+            # if sender_id and not db.check_user_daily_limit(sender_id):
+            #     return
             
             # Kalit so'zlar bilan tekshirish
             text_lower = text.lower()
@@ -511,55 +470,58 @@ class TaxiUserbot:
             user_name = sender_name
             short_text = original_text[:100] if len(original_text) > 100 else original_text
             
-            # Sender link
-            user_link = user_name
-            if sender:
-                if hasattr(sender, 'username') and sender.username:
-                    user_link = f"[{user_name}](https://t.me/{sender.username})"
-                elif hasattr(sender, 'id'):
-                    user_link = f"[{user_name}](tg://user?id={sender.id})"
-
-            formatted = f"👤 Mijoz: {user_name}\n\n"
-            formatted += f"💬 {short_text}"
-            
-            buttons = []
-            
-            # Guruh linki
-            if hasattr(chat, 'username') and chat.username:
-                msg_link = f"https://t.me/{chat.username}/{message.id}"
-                buttons.append([
-                    InlineKeyboardButton(text="📨 Xabar", url=msg_link),
-                    InlineKeyboardButton(text="👥 Guruh", url=f"https://t.me/{chat.username}")
-                ])
-            
-            # Yozish va bloklash
-            sender_id = sender.id if sender else 0
-            row2 = []
+            formatted = f"👤 {user_name}"
             if sender and hasattr(sender, 'username') and sender.username:
-                row2.append(InlineKeyboardButton(text="✍️ Yozish", url=f"https://t.me/{sender.username}"))
-            if row2:
-                buttons.append(row2)
+                formatted += f" (@{sender.username})"
             
-            if sender_id:
-                buttons.append([InlineKeyboardButton(text="🚫 Bloklash", callback_data=f"block_user:{sender_id}")])
+            formatted += f"\n\n💬 {short_text}\n\n"
             
-            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
+            # Xabardan telefon izlash (polling xabar uchun)
+            phone_clean = None
+            phone_patterns = [
+                r'\+998\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}',
+                r'\+998\d{9}',
+                r'998\d{9}',
+                r'(?<!\d)\d{9}(?!\d)',
+            ]
             
-            # Barcha target guruhlarga yuborish
+            import re
+            for pattern in phone_patterns:
+                phone_match = re.search(pattern, original_text.replace(" ", ""))
+                if phone_match:
+                    phone_clean = phone_match.group()
+                    # format phone
+                    phone_clean = re.sub(r'[^\d+]', '', phone_clean)
+                    if not phone_clean.startswith('+'):
+                        if phone_clean.startswith('998'):
+                            phone_clean = '+' + phone_clean
+                        elif len(phone_clean) == 9:
+                            phone_clean = '+998' + phone_clean
+                    break
+            
+            if not phone_clean and sender and hasattr(sender, 'phone') and sender.phone:
+                phone_clean = sender.phone
+                if not phone_clean.startswith('+'):
+                    phone_clean = '+' + phone_clean
+
+            if phone_clean:
+                formatted += f"📞 {phone_clean}"
+            else:
+                formatted += "📞 Telefon raqam topilmadi"
+
+            # Barcha target guruhlarga yuborish (Endi akkaunt orqali)
             for target_group in target_groups:
                 try:
-                    await self.admin_bot.send_message(
-                        chat_id=target_group,
-                        text=formatted,
-                        reply_markup=keyboard,
-                        parse_mode="Markdown"
+                    await self.client.send_message(
+                        entity=target_group,
+                        message=formatted
                     )
                 except Exception as e:
                     pass
             
             self.forwarded_count += 1
             db.update_stats(forwarded=1)
-            logger.info(f"✅ Polling: {truncate_text(original_text, 40)}")
+            logger.info(f"✅ Polling (Akkaunt): {truncate_text(original_text, 40)}")
             
         except Exception as e:
             logger.error(f"Polling yuborish xatosi: {e}")
@@ -571,10 +533,13 @@ class TaxiUserbot:
             await self.client.run_until_disconnected()
 
 
-async def run_admin_bot(bot):
+async def run_admin_bot(bot, userbot=None):
     """Admin panel bot"""
     
     dp = Dispatcher(storage=MemoryStorage())
+    # Userbot clientni handlerlarga o'tkazish
+    dp["userbot"] = userbot
+    
     dp.include_router(router)
     
     bot_info = await bot.get_me()
@@ -617,7 +582,7 @@ async def main():
     tasks = []
     
     if bot:
-        tasks.append(asyncio.create_task(run_admin_bot(bot)))
+        tasks.append(asyncio.create_task(run_admin_bot(bot, userbot=userbot)))
     
     # Userbot client mavjud bo'lsa
     if userbot.client:
